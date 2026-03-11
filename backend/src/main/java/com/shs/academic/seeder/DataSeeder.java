@@ -12,27 +12,34 @@ import com.shs.academic.repository.SchoolRepository;
 import com.shs.academic.repository.SubjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
 @Slf4j
-@Component
+// @Component  // Disabled — enable manually when seed data is needed
 @Profile({"dev", "demo"})
+@Order(5)
 @RequiredArgsConstructor
-public class DataSeeder implements CommandLineRunner {
+public class DataSeeder implements ApplicationListener<ContextRefreshedEvent> {
 
     private final SchoolRepository schoolRepository;
     private final SubjectRepository subjectRepository;
     private final ProgramRepository programRepository;
     private final ProgramSubjectRepository programSubjectRepository;
 
+    private static volatile boolean alreadyRun = false;
+
     @Override
     @Transactional
-    public void run(String... args) {
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        if (alreadyRun) return;
+        alreadyRun = true;
         if (subjectRepository.count() > 0) {
             log.info("Subjects already seeded, skipping data seeder");
             return;

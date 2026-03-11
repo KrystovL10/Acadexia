@@ -6,12 +6,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "anthropic.api")
+@ConfigurationProperties(prefix = "gemini.api")
 public class AnthropicConfig {
 
     private String key;
     private String url;
     private String model;
     private Integer maxTokens;
-    private String version;
 }

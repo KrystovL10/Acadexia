@@ -9,9 +9,18 @@ import type {
   TranscriptDto,
   AttendanceSummaryDto,
   AttendanceSheetDto,
+  AttendanceResultDto,
+  AttendanceDto,
+  DailyAttendanceReportDto,
+  AttendanceStatsDto,
+  StudentAttendanceRowDto,
+  AttendanceCorrelationDto,
   MarkAttendanceRequest,
+  MarkSingleAttendanceRequest,
   BehaviorLogDto,
   CreateBehaviorLogRequest,
+  StudentBehaviorSummaryDto,
+  ClassBehaviorReportDto,
   ReportReadinessDto,
   ReportProgressDto,
   UpdateRemarksRequest,
@@ -49,7 +58,30 @@ export const teacherApi = {
   // ── Attendance ────────────────────────────────────────────────────────────
 
   markAttendance: (data: MarkAttendanceRequest) =>
-    api.post<ApiResponse<AttendanceSummaryDto>>('/v1/teachers/attendance', data),
+    api.post<ApiResponse<AttendanceResultDto>>('/v1/teachers/attendance', data),
+
+  markSingleAttendance: (data: MarkSingleAttendanceRequest) =>
+    api.post<ApiResponse<AttendanceDto>>('/v1/teachers/attendance/single', data),
+
+  getTodayAttendance: (classRoomId: number, termId: number) =>
+    api.get<ApiResponse<DailyAttendanceReportDto>>('/v1/teachers/attendance/today', {
+      params: { classRoomId, termId },
+    }),
+
+  getDailyAttendance: (classRoomId: number, termId: number, date: string) =>
+    api.get<ApiResponse<DailyAttendanceReportDto>>('/v1/teachers/attendance/daily', {
+      params: { classRoomId, termId, date },
+    }),
+
+  getAttendanceStats: (classRoomId: number, termId: number) =>
+    api.get<ApiResponse<AttendanceStatsDto>>('/v1/teachers/attendance/stats', {
+      params: { classRoomId, termId },
+    }),
+
+  getAttendanceRows: (classRoomId: number, termId: number) =>
+    api.get<ApiResponse<StudentAttendanceRowDto[]>>('/v1/teachers/attendance/rows', {
+      params: { classRoomId, termId },
+    }),
 
   getAttendanceSummary: (termId?: number) =>
     api.get<ApiResponse<AttendanceSummaryDto[]>>('/v1/teachers/attendance', {
@@ -57,12 +89,18 @@ export const teacherApi = {
     }),
 
   getAttendanceSheet: (
-    termId: number | undefined,
+    classRoomId: number,
+    termId: number,
     startDate: string,
     endDate: string
   ) =>
     api.get<ApiResponse<AttendanceSheetDto>>('/v1/teachers/attendance/sheet', {
-      params: { ...(termId && { termId }), startDate, endDate },
+      params: { classRoomId, termId, startDate, endDate },
+    }),
+
+  getAttendanceCorrelation: (classRoomId: number, termId: number) =>
+    api.get<ApiResponse<AttendanceCorrelationDto>>('/v1/teachers/attendance/correlation', {
+      params: { classRoomId, termId },
     }),
 
   // ── Behavior ──────────────────────────────────────────────────────────────
@@ -86,6 +124,17 @@ export const teacherApi = {
 
   deleteBehaviorLog: (logId: number) =>
     api.delete<ApiResponse<void>>(`/v1/teachers/behavior/${logId}`),
+
+  getStudentBehaviorSummary: (studentId: number, termId?: number) =>
+    api.get<ApiResponse<StudentBehaviorSummaryDto>>(
+      `/v1/teachers/behavior/student/${studentId}/summary`,
+      { params: termId ? { termId } : undefined }
+    ),
+
+  getClassBehaviorReport: (termId?: number) =>
+    api.get<ApiResponse<ClassBehaviorReportDto>>('/v1/teachers/behavior/report', {
+      params: termId ? { termId } : undefined,
+    }),
 
   // ── Reports ───────────────────────────────────────────────────────────────
 

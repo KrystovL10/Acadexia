@@ -1,8 +1,9 @@
 import api from './axios';
-import type { ApiResponse } from '../types/auth.types';
-import type { PageResponse } from '../types/shared.types';
+import type { ApiResponse, UserSession } from '../types/auth.types';
+import type { PageResponse, AuditLogDto } from '../types/shared.types';
 import type {
   AdminContextDto,
+  UpdateProfileRequest,
   CreateTeacherRequest, UpdateTeacherRequest, TeacherDto, TeacherSummaryDto,
   AssignClassTeacherRequest, AssignTutorRequest,
   CreateStudentRequest, UpdateStudentRequest, StudentDto, StudentSummaryDto,
@@ -15,6 +16,7 @@ import type {
   ClassRoomDto, CreateClassRoomRequest, UpdateClassRoomRequest,
   ScoreCompletionStatusDto, TermResultDto, CumulativeGPADto,
 } from '../types/admin.types';
+import type { TutorScoreSheetDto, ScoreDto, ScoreUpdateRequest } from '../types/tutor.types';
 import type {
   AdminDashboardStatsDto, TermComparisonDto, GradeDistributionDto,
   ClassPerformanceDto, SubjectWeaknessDto, EnrollmentTrendDto,
@@ -271,12 +273,22 @@ export const adminApi = {
   // ==================== ATTENDANCE ====================
 
   getSchoolAttendanceStats: (schoolId: number, termId: number) =>
-    api.get<ApiResponse<SchoolAttendanceStatsDto>>('/v1/admin/attendance/stats', {
+    api.get<ApiResponse<SchoolAttendanceStatsDto>>('/v1/admin/stats/attendance', {
       params: { schoolId, termId },
     }),
 
+  getClassAttendanceStats: (classRoomId: number, termId: number) =>
+    api.get<ApiResponse<SchoolAttendanceStatsDto>>('/v1/admin/stats/attendance/class', {
+      params: { classRoomId, termId },
+    }),
+
+  getStudentAttendance: (studentId: number, classRoomId: number, termId: number) =>
+    api.get<ApiResponse<SchoolAttendanceStatsDto>>(`/v1/admin/users/students/${studentId}/attendance`, {
+      params: { classRoomId, termId },
+    }),
+
   overrideAttendance: (data: AttendanceOverrideRequest) =>
-    api.put<ApiResponse<void>>('/v1/admin/attendance/override', data),
+    api.patch<ApiResponse<void>>('/v1/admin/users/students/attendance/override', data),
 
   // ==================== REPORTS ====================
 
@@ -335,4 +347,41 @@ export const adminApi = {
     api.get<ApiResponse<StudentWaecPredictionDto>>(`/v1/admin/ai/waec-readiness/student/${studentId}`, {
       params: { termId },
     }),
+
+  // ==================== ADMIN PROFILE ====================
+
+  getAdminProfile: () =>
+    api.get<ApiResponse<UserSession>>('/v1/admin/profile'),
+
+  updateAdminProfile: (data: UpdateProfileRequest) =>
+    api.put<ApiResponse<UserSession>>('/v1/admin/profile', data),
+
+  // ==================== ADMIN SCORES ====================
+
+  getAdminScoreSheet: (classRoomId: number, subjectId: number, termId: number) =>
+    api.get<ApiResponse<TutorScoreSheetDto>>('/v1/admin/scores', {
+      params: { classRoomId, subjectId, termId },
+    }),
+
+  adminOverrideScore: (scoreId: number, data: ScoreUpdateRequest) =>
+    api.put<ApiResponse<ScoreDto>>(`/v1/admin/scores/${scoreId}`, data),
+
+  adminDeleteScore: (scoreId: number) =>
+    api.delete<ApiResponse<void>>(`/v1/admin/scores/${scoreId}`),
+
+  getMissingScores: (classRoomId: number, termId: number) =>
+    api.get<ApiResponse<ScoreCompletionStatusDto>>('/v1/admin/scores/missing', {
+      params: { classRoomId, termId },
+    }),
+
+  // ==================== AUDIT LOGS ====================
+
+  getAuditLogs: (params: { page?: number; size?: number }) =>
+    api.get<ApiResponse<PageResponse<AuditLogDto>>>('/v1/admin/audit-logs', { params }),
+
+  getAuditLogsByUser: (userId: number, params: { page?: number; size?: number }) =>
+    api.get<ApiResponse<PageResponse<AuditLogDto>>>(`/v1/admin/audit-logs/user/${userId}`, { params }),
+
+  getAuditLogsByAction: (action: string, params: { page?: number; size?: number }) =>
+    api.get<ApiResponse<PageResponse<AuditLogDto>>>(`/v1/admin/audit-logs/action/${action}`, { params }),
 };

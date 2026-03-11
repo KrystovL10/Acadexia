@@ -39,39 +39,49 @@ public class ClaudeApiClient {
     }
 
     /**
-     * Send a single-turn message to Claude.
+     * Send a single-turn message to Gemini.
      */
     public String sendMessage(String systemPrompt, String userMessage) {
-        ObjectNode body = objectMapper.createObjectNode();
-        body.put("model", config.getModel());
-        body.put("max_tokens", config.getMaxTokens());
-        body.put("system", systemPrompt);
+        ObjectNode body = buildBaseBody(systemPrompt);
 
-        ArrayNode messages = body.putArray("messages");
-        ObjectNode msg = messages.addObject();
-        msg.put("role", "user");
-        msg.put("content", userMessage);
+        ArrayNode contents = body.putArray("contents");
+        ObjectNode userContent = contents.addObject();
+        userContent.put("role", "user");
+        userContent.putArray("parts").addObject().put("text", userMessage);
 
         return executeRequest(body);
     }
 
     /**
-     * Send a multi-turn conversation to Claude (for AI study assistant, etc.).
+     * Send a multi-turn conversation to Gemini.
+     * History messages use role "user" or "assistant" — Gemini expects "user" or "model".
      */
     public String sendMessageWithHistory(String systemPrompt, List<Map<String, String>> messages) {
-        ObjectNode body = objectMapper.createObjectNode();
-        body.put("model", config.getModel());
-        body.put("max_tokens", config.getMaxTokens());
-        body.put("system", systemPrompt);
+        ObjectNode body = buildBaseBody(systemPrompt);
 
-        ArrayNode messagesArray = body.putArray("messages");
+        ArrayNode contents = body.putArray("contents");
         for (Map<String, String> m : messages) {
-            ObjectNode msg = messagesArray.addObject();
-            msg.put("role", m.get("role"));
-            msg.put("content", m.get("content"));
+            ObjectNode content = contents.addObject();
+            String role = "assistant".equals(m.get("role")) ? "model" : "user";
+            content.put("role", role);
+            content.putArray("parts").addObject().put("text", m.get("content"));
         }
 
         return executeRequest(body);
+    }
+
+    private ObjectNode buildBaseBody(String systemPrompt) {
+        ObjectNode body = objectMapper.createObjectNode();
+
+        // System instruction
+        ObjectNode sysInstruction = body.putObject("system_instruction");
+        sysInstruction.putArray("parts").addObject().put("text", systemPrompt);
+
+        // Generation config
+        ObjectNode genConfig = body.putObject("generationConfig");
+        genConfig.put("maxOutputTokens", config.getMaxTokens());
+
+        return body;
     }
 
     private String executeRequest(ObjectNode requestBody) {
@@ -82,37 +92,36 @@ public class ClaudeApiClient {
             throw new AiServiceException("Failed to serialize AI request", e);
         }
 
+        // Gemini URL: {base}/{model}:generateContent?key={apiKey}
+        String url = config.getUrl() + "/" + config.getModel() + ":generateContent?key=" + config.getKey();
+
         Request request = new Request.Builder()
-                .url(config.getUrl())
+                .url(url)
                 .post(RequestBody.create(bodyJson, JSON))
-                .addHeader("x-api-key", config.getKey())
-                .addHeader("anthropic-version", config.getVersion())
-                .addHeader("content-type", "application/json")
+                .addHeader("Content-Type", "application/json")
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             String responseBody = response.body() != null ? response.body().string() : "";
 
             if (!response.isSuccessful()) {
-                log.error("Claude API error [{}]: {}", response.code(), responseBody);
-                throw new AiServiceException(
-                        "Claude API returned status " + response.code(),
-                        response.code()
-                );
+                log.error("Gemini API error [{}]: {}", response.code(), responseBody);
+                throw new AiServiceException("Gemini API returned status " + response.code(), response.code());
             }
 
+            // Gemini response: candidates[0].content.parts[0].text
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode content = root.path("content");
+            JsonNode text = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
 
-            if (content.isArray() && !content.isEmpty()) {
-                return content.get(0).path("text").asText();
+            if (!text.isMissingNode()) {
+                return text.asText();
             }
 
-            log.error("Unexpected Claude API response structure: {}", responseBody);
-            throw new AiServiceException("Unexpected response structure from Claude API");
+            log.error("Unexpected Gemini API response structure: {}", responseBody);
+            throw new AiServiceException("Unexpected response structure from Gemini API");
 
         } catch (IOException e) {
-            log.error("Network error calling Claude API: {}", e.getMessage());
+            log.error("Network error calling Gemini API: {}", e.getMessage());
             throw new AiServiceException("Failed to connect to AI service", e);
         }
     }

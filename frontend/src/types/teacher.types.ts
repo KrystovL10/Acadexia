@@ -179,6 +179,130 @@ export interface MarkAttendanceRequest {
   entries: AttendanceEntry[];
 }
 
+export interface MarkSingleAttendanceRequest {
+  studentId: number;
+  classRoomId: number;
+  termId: number;
+  date: string;
+  isPresent: boolean;
+  isLate?: boolean;
+  reason?: string;
+}
+
+export interface AttendanceDto {
+  id: number;
+  studentId: number;
+  studentIndex: string;
+  studentName: string;
+  classRoomId: number;
+  className: string;
+  termId: number;
+  date: string;
+  isPresent: boolean;
+  isLate: boolean;
+  reason: string | null;
+  markedById: number;
+  markedByName: string;
+  markedAt: string;
+}
+
+export interface AttendanceResultDto {
+  classRoomId: number;
+  className: string;
+  termId: number;
+  date: string;
+  totalStudents: number;
+  markedPresent: number;
+  markedAbsent: number;
+  markedLate: number;
+  records: AttendanceDto[];
+}
+
+export interface StudentStatusEntry {
+  studentId: number;
+  studentIndex: string;
+  studentName: string;
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'NOT_MARKED';
+  reason: string | null;
+}
+
+export interface DailyAttendanceReportDto {
+  classRoomId: number;
+  className: string;
+  termId: number;
+  date: string;
+  totalStudents: number;
+  presentCount: number;
+  absentCount: number;
+  lateCount: number;
+  notMarkedCount: number;
+  isFullyMarked: boolean;
+  entries: StudentStatusEntry[];
+}
+
+export interface AttendanceStatsDto {
+  scopeId: number;
+  scopeName: string;
+  termId: number;
+  termLabel: string;
+  totalStudents: number;
+  totalDaysRecorded: number;
+  totalExpectedRecords: number;
+  totalPresent: number;
+  totalAbsent: number;
+  totalLate: number;
+  overallAttendanceRate: number;
+  punctualityRate: number;
+  studentsWithPerfectAttendance: number;
+  studentsAtRisk: number;
+  classBreakdowns: Array<{
+    classRoomId: number;
+    className: string;
+    studentCount: number;
+    totalPresent: number;
+    totalAbsent: number;
+    attendanceRate: number;
+  }>;
+}
+
+export interface StudentAttendanceRowDto {
+  studentId: number;
+  studentIndex: string;
+  studentName: string;
+  totalPresent: number;
+  totalAbsent: number;
+  totalLate: number;
+  attendanceRate: number;
+  /** date string (yyyy-MM-dd) → status */
+  dailyStatus: Record<string, 'PRESENT' | 'ABSENT' | 'LATE'>;
+}
+
+export interface AtRiskAttendanceStudentDto {
+  studentId: number;
+  studentIndex: string;
+  studentName: string;
+  attendanceRate: number;
+  totalAbsent: number;
+  totalPresent: number;
+  totalLate: number;
+  gpa: number | null;
+  riskLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface AttendanceCorrelationDto {
+  classRoomId: number;
+  className: string;
+  termId: number;
+  termLabel: string;
+  correlationCoefficient: number;
+  correlationStrength: string;
+  sampleSize: number;
+  atRiskStudents: AtRiskAttendanceStudentDto[];
+  aiSummary: string;
+  recommendations: string[];
+  generatedAt: string;
+}
+
 export interface AttendanceSheetDto {
   students: StudentSummaryDto[];
   /** ISO date strings (yyyy-MM-dd) */
@@ -209,6 +333,46 @@ export interface CreateBehaviorLogRequest {
   title: string;
   description: string;
   severity?: string;
+}
+
+export interface StudentBehaviorSummaryDto {
+  studentId: number;
+  studentName: string;
+  termLabel: string;
+  achievementCount: number;
+  disciplineCount: number;
+  noteCount: number;
+  conductScore: number;
+  conductGrade: string;
+  logs: BehaviorLogDto[];
+  aiConductAssessment: string;
+}
+
+export interface StudentConductEntry {
+  studentId: number;
+  studentIndex: string;
+  studentName: string;
+  conductScore: number;
+  conductGrade: string;
+  achievementCount: number;
+  disciplineCount: number;
+}
+
+export interface ClassBehaviorReportDto {
+  classRoomId: number;
+  className: string;
+  termId: number;
+  termLabel: string;
+  summary: {
+    totalAchievements: number;
+    totalDisciplineIssues: number;
+    totalNotes: number;
+    avgConductScore: number;
+    studentsWithConcerns: number;
+  };
+  leaderboard: StudentConductEntry[];
+  concerns: StudentConductEntry[];
+  recentLogs: BehaviorLogDto[];
 }
 
 // ==================== REPORTS ====================

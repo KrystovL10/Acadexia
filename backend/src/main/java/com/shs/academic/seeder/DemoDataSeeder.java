@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Seeds realistic Ghanaian SHS data for testing and demonstration.
  */
 @Slf4j
-@Component
+// @Component  // Disabled — enable manually when demo data is needed
 @Profile("demo")
 @Order(10) // Run after AdminSeeder (1) and DataSeeder
 @RequiredArgsConstructor

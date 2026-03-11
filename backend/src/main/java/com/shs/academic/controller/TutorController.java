@@ -24,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/tutor")
+@RequestMapping("/api/v1/tutors")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('TUTOR', 'CLASS_TEACHER')")
 @Tag(name = "Tutor - Score Entry", description = "Score entry and management endpoints for subject tutors and class teachers")

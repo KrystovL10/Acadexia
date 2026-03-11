@@ -858,7 +858,72 @@ export default function ClassTeacherDashboard() {
         </div>
       </div>
 
-      {/* ── 2. STAT CARDS ──────────────────────────────────────────────── */}
+      {/* ── 2. QUICK ACTIONS ────────────────────────────────────────────── */}
+      <Card title="Quick Actions">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {[
+            {
+              icon: <Calendar className="h-5 w-5" />,
+              label: 'Mark Attendance',
+              color: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100',
+              onClick: () => setShowAttendanceModal(true),
+            },
+            {
+              icon: <BarChart2 className="h-5 w-5" />,
+              label: 'Score Overview',
+              color:
+                'bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-100',
+              onClick: () => navigate(ROUTES.TEACHER_SCORES),
+            },
+            {
+              icon: <FileText className="h-5 w-5" />,
+              label: 'Generate Reports',
+              color:
+                'bg-green-50 text-green-600 hover:bg-green-100 border-green-100',
+              onClick: () => setShowGenerateModal(true),
+            },
+            {
+              icon: downloadReports.isPending ? (
+                <Spinner size="sm" />
+              ) : (
+                <Download className="h-5 w-5" />
+              ),
+              label: 'Download Reports',
+              color:
+                'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-100',
+              onClick: () => termId && downloadReports.mutate(termId),
+            },
+            {
+              icon: <GraduationCap className="h-5 w-5" />,
+              label: 'View Transcripts',
+              color:
+                'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100',
+              onClick: () => navigate(ROUTES.TEACHER_STUDENTS),
+            },
+            {
+              icon: <AlertTriangle className="h-5 w-5" />,
+              label: 'View Warnings',
+              color: 'bg-red-50 text-red-600 hover:bg-red-100 border-red-100',
+              onClick: () => navigate(ROUTES.TEACHER_BEHAVIOR),
+            },
+          ].map(({ icon, label, color, onClick }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              className={cn(
+                'flex flex-col items-center gap-2 rounded-xl border px-3 py-4',
+                'text-center text-xs font-semibold transition-colors',
+                color
+              )}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── 3. STAT CARDS ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           icon={<Users className="h-5 w-5" />}
@@ -1346,71 +1411,6 @@ export default function ClassTeacherDashboard() {
             })}
           </div>
         )}
-      </Card>
-
-      {/* ── 8. QUICK ACTIONS ───────────────────────────────────────────── */}
-      <Card title="Quick Actions">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {[
-            {
-              icon: <Calendar className="h-5 w-5" />,
-              label: 'Mark Attendance',
-              color: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100',
-              onClick: () => setShowAttendanceModal(true),
-            },
-            {
-              icon: <BarChart2 className="h-5 w-5" />,
-              label: 'Score Overview',
-              color:
-                'bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-100',
-              onClick: () => navigate(ROUTES.TEACHER_SCORES),
-            },
-            {
-              icon: <FileText className="h-5 w-5" />,
-              label: 'Generate Reports',
-              color:
-                'bg-green-50 text-green-600 hover:bg-green-100 border-green-100',
-              onClick: () => setShowGenerateModal(true),
-            },
-            {
-              icon: downloadReports.isPending ? (
-                <Spinner size="sm" />
-              ) : (
-                <Download className="h-5 w-5" />
-              ),
-              label: 'Download Reports',
-              color:
-                'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-100',
-              onClick: () => termId && downloadReports.mutate(termId),
-            },
-            {
-              icon: <GraduationCap className="h-5 w-5" />,
-              label: 'View Transcripts',
-              color:
-                'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100',
-              onClick: () => navigate(ROUTES.TEACHER_STUDENTS),
-            },
-            {
-              icon: <AlertTriangle className="h-5 w-5" />,
-              label: 'View Warnings',
-              color: 'bg-red-50 text-red-600 hover:bg-red-100 border-red-100',
-              onClick: () => navigate(ROUTES.TEACHER_BEHAVIOR),
-            },
-          ].map(({ icon, label, color, onClick }) => (
-            <button
-              key={label}
-              onClick={onClick}
-              className={cn(
-                'flex flex-col items-center gap-2 rounded-xl border px-3 py-4',
-                'text-center text-xs font-semibold transition-colors',
-                color
-              )}
-            >
-              {icon}
-              {label}
-            </button>
-          ))}
-        </div>
       </Card>
 
       {/* ── Floating Action Button ────────────────────────────────────── */}

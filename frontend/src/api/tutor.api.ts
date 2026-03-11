@@ -13,8 +13,7 @@ import type {
   ScoreCompletionDto,
 } from '../types/tutor.types';
 
-// Base path matches backend controller: /api/tutor (no v1 prefix)
-const BASE = '/tutor';
+const BASE = '/v1/tutors';
 
 export const tutorApi = {
   // ==================== ASSIGNMENTS ====================

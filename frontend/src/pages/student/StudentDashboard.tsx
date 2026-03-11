@@ -388,6 +388,35 @@ export default function StudentDashboard() {
         </div>
       </div>
 
+      {/* ── Quick Actions ──────────────────────────────────────────────── */}
+      <div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          Quick Actions
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickAction
+            icon={BarChart2}
+            label="View Results"
+            onClick={() => navigate(ROUTES.STUDENT_RESULTS)}
+          />
+          <QuickAction
+            icon={Download}
+            label={downloadTranscript.isPending ? 'Downloading…' : 'Download Transcript'}
+            onClick={() => downloadTranscript.mutate()}
+          />
+          <QuickAction
+            icon={Brain}
+            label="Study Assistant"
+            onClick={() => navigate(ROUTES.STUDENT_AI)}
+          />
+          <QuickAction
+            icon={User}
+            label="My Profile"
+            onClick={() => navigate(ROUTES.STUDENT_PROFILE)}
+          />
+        </div>
+      </div>
+
       {isPageLoading && (
         <div className="flex justify-center py-12">
           <Spinner size="lg" className="text-primary" />
@@ -913,34 +942,6 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* ── Quick Actions ──────────────────────────────────────────────── */}
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Quick Actions
-            </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <QuickAction
-                icon={BarChart2}
-                label="View Results"
-                onClick={() => navigate(ROUTES.STUDENT_RESULTS)}
-              />
-              <QuickAction
-                icon={Download}
-                label={downloadTranscript.isPending ? 'Downloading…' : 'Download Transcript'}
-                onClick={() => downloadTranscript.mutate()}
-              />
-              <QuickAction
-                icon={Brain}
-                label="Study Assistant"
-                onClick={() => navigate(ROUTES.STUDENT_AI)}
-              />
-              <QuickAction
-                icon={User}
-                label="My Profile"
-                onClick={() => navigate(ROUTES.STUDENT_PROFILE)}
-              />
-            </div>
-          </div>
         </>
       )}
     </div>

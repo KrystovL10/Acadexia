@@ -228,6 +228,9 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      {/* QUICK ACTIONS */}
+      <QuickActionsPanel />
+
       {/* STAT CARDS */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -453,8 +456,8 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* BOTTOM: Warnings + Top Students + Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* BOTTOM: Warnings + Top Students */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Early Warnings Panel */}
         {warningQuery.isLoading ? (
           <SkeletonChart height={300} />
@@ -604,8 +607,6 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {/* Quick Actions */}
-        <QuickActionsPanel />
       </div>
     </div>
   );

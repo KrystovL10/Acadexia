@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
-@Component
+// @Component  // Disabled — enable manually when initial seed data is needed
 @Order(1)
 @RequiredArgsConstructor
 public class AdminSeeder implements ApplicationListener<ContextRefreshedEvent> {

@@ -8,3 +8,15 @@ export interface PageResponse<T> {
   last: boolean;
   empty: boolean;
 }
+
+export interface AuditLogDto {
+  id: number;
+  action: string;
+  userId: number | null;
+  userRole: string | null;
+  entityType: string | null;
+  entityId: number | null;
+  details: string | null;
+  ipAddress: string | null;
+  timestamp: string;
+}

@@ -1,5 +1,14 @@
 import type { ProgramType, TermType, YearGroup } from './enums';
 
+// ==================== ADMIN PROFILE ====================
+
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  profilePhotoUrl?: string;
+}
+
 // ==================== TEACHER ====================
 
 export interface CreateTeacherRequest {
