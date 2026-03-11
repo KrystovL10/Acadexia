@@ -1,0 +1,90 @@
+/* ─── Print Stylesheet ─── */
+
+@media print {
+  /* Hide everything except the print target */
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Hide UI chrome */
+  nav,
+  aside,
+  header,
+  .no-print,
+  button:not(.print-keep),
+  .action-bar {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-after: always;
+  }
+
+  .no-page-break {
+    page-break-inside: avoid;
+  }
+
+  /* Report specific */
+  .report-header {
+    margin-bottom: 12pt;
+  }
+
+  .scores-table {
+    font-size: 8pt;
+  }
+
+  .scores-table th,
+  .scores-table td {
+    padding: 3pt 4pt;
+  }
+
+  .grade-badge {
+    border: 1px solid #333;
+    padding: 1pt 3pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Transcript specific */
+  .transcript-year-section {
+    page-break-inside: avoid;
+    margin-bottom: 20pt;
+  }
+
+  .transcript-header {
+    page-break-after: avoid;
+  }
+
+  /* Force background colors in print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove shadows and borders that don't print well */
+  .print-area .shadow-sm,
+  .print-area .shadow-md,
+  .print-area .shadow-lg,
+  .print-area .shadow-2xl {
+    box-shadow: none !important;
+  }
+}

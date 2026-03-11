@@ -1,0 +1,36 @@
+# ─── Environment files (contain secrets) ───
+.env
+.env.local
+.env.*.local
+
+# ─── IDE / Editor ───
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── Backend (Java/Maven) ───
+backend/target/
+*.class
+*.jar
+*.war
+*.log
+
+# ─── Frontend (Node/Vite) ───
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# ─── Misc ───
+*.swp
+*.swo
+*~
