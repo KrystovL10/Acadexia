@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Users, TrendingUp, CheckCircle, AlertTriangle,
   RefreshCw, ChevronRight, Trophy, Crown,
+  UserPlus, GraduationCap, FileBarChart, Settings, UserCog,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -452,8 +453,8 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* BOTTOM TWO-COLUMN: Warnings + Top Students */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* BOTTOM: Warnings + Top Students + Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Early Warnings Panel */}
         {warningQuery.isLoading ? (
           <SkeletonChart height={300} />
@@ -602,7 +603,87 @@ export default function AdminDashboard() {
             )}
           </Card>
         )}
+
+        {/* Quick Actions */}
+        <QuickActionsPanel />
       </div>
+    </div>
+  );
+}
+
+// ==================== QUICK ACTIONS ====================
+
+const QUICK_ACTIONS = [
+  {
+    icon: UserPlus,
+    label: 'Enroll Student',
+    description: 'Add a new student',
+    bg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+    route: ROUTES.ADMIN_STUDENTS,
+  },
+  {
+    icon: UserCog,
+    label: 'Add Staff',
+    description: 'Add a teacher or tutor',
+    bg: 'bg-violet-50',
+    iconColor: 'text-violet-600',
+    route: ROUTES.ADMIN_TEACHERS,
+  },
+  {
+    icon: GraduationCap,
+    label: 'New Class',
+    description: 'Create a new class',
+    bg: 'bg-amber-50',
+    iconColor: 'text-amber-600',
+    route: ROUTES.ADMIN_CLASSES,
+  },
+  {
+    icon: FileBarChart,
+    label: 'View Reports',
+    description: 'Generate report cards',
+    bg: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
+    route: ROUTES.ADMIN_REPORTS,
+  },
+] as const;
+
+function QuickActionsPanel() {
+  const navigate = useNavigate();
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col">
+      <div className="mb-4">
+        <h3 className="font-semibold text-gray-900">Quick Actions</h3>
+        <p className="mt-0.5 text-sm text-gray-500">Frequently used actions and shortcuts</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 flex-1">
+        {QUICK_ACTIONS.map(({ icon: Icon, label, description, bg, iconColor, route }) => (
+          <button
+            key={label}
+            onClick={() => navigate(route)}
+            className={cn(
+              'flex flex-col items-center gap-2 rounded-xl p-4 text-center',
+              'transition-all duration-150 hover:brightness-95 active:scale-95',
+              bg,
+            )}
+          >
+            <Icon className={cn('h-6 w-6', iconColor)} />
+            <div>
+              <p className="text-sm font-semibold text-gray-800">{label}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={() => navigate(ROUTES.ADMIN_SETTINGS)}
+        className="mt-5 flex w-full items-center justify-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <Settings className="h-3.5 w-3.5" />
+        Customize quick actions
+      </button>
     </div>
   );
 }
