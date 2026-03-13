@@ -667,12 +667,12 @@ function GenerateReportsModal({
               <div
                 className={cn(
                   'flex items-start gap-3 rounded-lg px-4 py-3 text-sm',
-                  readiness.isReady
+                  readiness.ready
                     ? 'border border-green-200 bg-green-50 text-green-800'
                     : 'border border-amber-200 bg-amber-50 text-amber-800'
                 )}
               >
-                {readiness.isReady ? (
+                {readiness.ready ? (
                   <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                 ) : (
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
@@ -731,7 +731,7 @@ function GenerateReportsModal({
               variant="primary"
               onClick={handleGenerate}
               loading={generateReports.isPending}
-              disabled={!readiness?.isReady || !termId}
+              disabled={!readiness?.ready || !termId}
             >
               <FileText className="h-4 w-4" />
               Generate {readiness?.studentsCount ?? ''} Reports
@@ -788,7 +788,7 @@ export default function ClassTeacherDashboard() {
   const classInfo = dashboard?.classInfo;
   const termLabel =
     dashboard?.termLabel ?? schoolStore.currentTermLabel ?? 'No active term';
-  const canGenerate = readiness?.isReady ?? false;
+  const canGenerate = readiness?.ready ?? false;
 
   // ── Loading ──
   if (loadingDash) {

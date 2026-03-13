@@ -134,7 +134,7 @@ function StatCards({
         <div className="flex items-center gap-2">
           <Star className="h-5 w-5 text-amber-500" />
           <span className="text-3xl font-bold text-amber-600">
-            {stats.perfectAttendanceStudents.length}
+            {(stats.perfectAttendanceStudents ?? []).length}
           </span>
         </div>
         <p className="mt-1 text-xs text-gray-500">100% attendance</p>
@@ -288,7 +288,7 @@ function YearGroupBreakdown({
 }: {
   stats: SchoolAttendanceStatsDto;
 }) {
-  const groups = stats.yearGroupBreakdown;
+  const groups = stats.yearGroupBreakdown ?? [];
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -318,7 +318,7 @@ function YearGroupBreakdown({
 
             {/* Mini stacked bars for classes */}
             <div className="space-y-2">
-              {yg.classes.slice(0, 5).map((cls) => {
+              {(yg.classes ?? []).slice(0, 5).map((cls) => {
                 const crc = riskColor(cls.avgAttendance);
                 return (
                   <div key={cls.classId}>
@@ -365,7 +365,7 @@ function AtRiskSection({
   const [tab, setTab] = useState<RiskTab>('all');
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const allAtRisk = stats.mostAbsentStudents.filter((s) => s.attendancePercentage < 75);
+  const allAtRisk = (stats.mostAbsentStudents ?? []).filter((s) => s.attendancePercentage < 75);
   const filtered = useMemo(() => {
     switch (tab) {
       case 'critical': return allAtRisk.filter((s) => s.attendancePercentage < 65);
@@ -820,11 +820,11 @@ export default function AttendanceDashboard() {
           <StatCards stats={stats} onAtRiskClick={scrollToAtRisk} />
 
           {/* Trend Chart */}
-          <DailyTrendChart data={stats.dailyTrend} termLabel={stats.termLabel} />
+          <DailyTrendChart data={stats.dailyTrend ?? []} termLabel={stats.termLabel} />
 
           {/* Class Comparison */}
           <ClassComparisonChart
-            classes={stats.classBreakdown}
+            classes={stats.classBreakdown ?? []}
             onClassClick={(id) => setFilterClassId(id === filterClassId ? null : id)}
           />
 
@@ -840,7 +840,7 @@ export default function AttendanceDashboard() {
           </div>
 
           {/* Perfect Attendance */}
-          <PerfectAttendanceSection students={stats.perfectAttendanceStudents} />
+          <PerfectAttendanceSection students={stats.perfectAttendanceStudents ?? []} />
         </>
       )}
 

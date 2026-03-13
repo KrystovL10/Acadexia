@@ -109,7 +109,7 @@ function OverviewTab({ studentId }: { studentId: number }) {
       </div>
     );
   if (!detail) return <p className="py-8 text-center text-sm text-gray-400">No data.</p>;
-  const s = detail.student;
+  const s = detail;
   const rows = [
     ['Student Index', s.studentIndex],
     ['Date of Birth', s.dateOfBirth],

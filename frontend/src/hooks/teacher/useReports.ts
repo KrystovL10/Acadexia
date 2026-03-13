@@ -65,7 +65,7 @@ export function useReportStatus(
     enabled: !!classRoomId && !!termId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.isReady ? false : 3000;
+      return data?.ready ? false : 3000;
     },
   });
 }

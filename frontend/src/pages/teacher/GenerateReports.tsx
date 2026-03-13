@@ -89,7 +89,7 @@ function ReadinessCard({
       failAction: { label: 'Go to Attendance', to: '/teacher/attendance' },
     },
     {
-      ok: !readiness.isReady || readiness.isReady, // always show as ok (no "locked" endpoint)
+      ok: !readiness.ready || readiness.ready, // always show as ok (no "locked" endpoint)
       label: 'Term results not yet locked',
     },
   ];
@@ -125,24 +125,24 @@ function ReadinessCard({
 
         <div className={cn(
           'mt-4 rounded-lg px-4 py-3',
-          readiness.isReady
+          readiness.ready
             ? 'border border-green-200 bg-green-50'
             : 'border border-amber-200 bg-amber-50'
         )}>
           <p className={cn(
             'text-sm font-medium',
-            readiness.isReady ? 'text-green-700' : 'text-amber-700'
+            readiness.ready ? 'text-green-700' : 'text-amber-700'
           )}>
-            {readiness.isReady
+            {readiness.ready
               ? '✅ All checks passed. Ready to generate reports.'
               : '⚠️ Complete the checklist before generating reports.'}
           </p>
-          {readiness.message && !readiness.isReady && (
+          {readiness.message && !readiness.ready && (
             <p className="mt-1 text-xs text-amber-600">{readiness.message}</p>
           )}
         </div>
 
-        {readiness.isReady && (
+        {readiness.ready && (
           <Button size="lg" variant="primary" onClick={onGenerate} className="w-full mt-2">
             <FileText className="h-5 w-5" />
             Generate All Reports for {studentsCount} Students

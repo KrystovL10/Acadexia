@@ -27,6 +27,7 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
 import com.shs.academic.exception.ResourceNotFoundException;
+import com.shs.academic.service.ai.ClaudeApiClient;
 import com.shs.academic.util.GpaCalculator;
 import com.shs.academic.model.dto.SchoolDto;
 import com.shs.academic.model.dto.TranscriptDto;
@@ -57,6 +58,7 @@ public class PdfGeneratorService {
     private final ScoreRepository scoreRepository;
     private final ClassRoomRepository classRoomRepository;
     private final TranscriptService transcriptService;
+    private final ClaudeApiClient aiClient;
 
     // ─── Cached fonts (initialised once, reused across all PDFs) ─────
     private PdfFont fontBold;
@@ -105,6 +107,15 @@ public class PdfGeneratorService {
     // ================================================================
 
     @Transactional(readOnly = true)
+    /** Transient enrichment data for the report PDF — not persisted. */
+    private record ReportEnrichment(
+            String conductRating,
+            String interest,
+            String attitude,
+            String teacherRemarks,
+            String headmasterRemarks
+    ) {}
+
     public byte[] generateTerminalReportPdf(Long studentId, Long termId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -117,12 +128,117 @@ public class PdfGeneratorService {
         List<Score> scores = scoreRepository.findByStudentIdAndTermId(studentId, termId);
         scores.sort((a, b) -> a.getSubject().getName().compareTo(b.getSubject().getName()));
 
+        ReportEnrichment enrichment = enrichReport(student, tr, scores);
+
         try {
-            return buildReportPdf(student, tr, scores);
+            return buildReportPdf(student, tr, scores, enrichment);
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate PDF for student "
                     + student.getStudentIndex(), e);
         }
+    }
+
+    private ReportEnrichment enrichReport(Student student, TermResult tr, List<Score> scores) {
+        Double gpa = tr.getGpa();
+        double attendancePct = tr.getAttendancePercentage() != null ? tr.getAttendancePercentage() : 100.0;
+
+        // 1. Conduct — use saved value or derive from GPA
+        String conduct = tr.getConductRating() != null ? tr.getConductRating() : deriveConductFromGpa(gpa);
+
+        // 2. Interest & Attitude — always derive from performance data
+        String interest = deriveInterest(gpa, scores);
+        String attitude = deriveAttitude(gpa, attendancePct);
+
+        // 3. Teacher & Headmaster remarks — try AI, fallback to template
+        String firstName = student.getUser().getFirstName();
+        String lastName  = student.getUser().getLastName();
+        String fullName  = firstName + " " + lastName;
+
+        String teacherRemarks  = tr.getClassTeacherRemarks()  != null ? tr.getClassTeacherRemarks()
+                : generateTeacherRemarks(fullName, gpa, attendancePct, conduct, scores);
+        String headRemarks     = tr.getHeadmasterRemarks()    != null ? tr.getHeadmasterRemarks()
+                : generateHeadmasterRemarks(fullName, gpa, attendancePct);
+
+        return new ReportEnrichment(conduct, interest, attitude, teacherRemarks, headRemarks);
+    }
+
+    private String deriveConductFromGpa(Double gpa) {
+        if (gpa == null) return "GOOD";
+        if (gpa >= 3.6) return "EXCELLENT";
+        if (gpa >= 3.0) return "VERY_GOOD";
+        if (gpa >= 2.0) return "GOOD";
+        if (gpa >= 1.0) return "FAIR";
+        return "POOR";
+    }
+
+    private String deriveInterest(Double gpa, List<Score> scores) {
+        long highScores = scores.stream()
+                .filter(s -> s.getTotalScore() != null && s.getTotalScore() >= 65).count();
+        if (highScores >= scores.size() * 0.7) return "VERY_HIGH";
+        if (gpa != null && gpa >= 3.0) return "HIGH";
+        if (gpa != null && gpa >= 2.0) return "MODERATE";
+        return "LOW";
+    }
+
+    private String deriveAttitude(Double gpa, double attendancePct) {
+        if (attendancePct >= 90 && gpa != null && gpa >= 3.0) return "EXCELLENT";
+        if (attendancePct >= 80 && gpa != null && gpa >= 2.0) return "GOOD";
+        if (attendancePct >= 70) return "FAIR";
+        return "NEEDS_IMPROVEMENT";
+    }
+
+    private String generateTeacherRemarks(String name, Double gpa, double attendance,
+                                           String conduct, List<Score> scores) {
+        try {
+            String bestSubject = scores.stream()
+                    .filter(s -> s.getTotalScore() != null)
+                    .max(Comparator.comparingDouble(Score::getTotalScore))
+                    .map(s -> s.getSubject().getName()).orElse("core subjects");
+            String prompt = String.format(
+                    "Write a 2-sentence class teacher's remark for a Ghana SHS student named %s. " +
+                    "GPA: %.2f, Attendance: %.0f%%, Conduct: %s, Best subject: %s. " +
+                    "Be encouraging, specific, and professional. No bullet points, plain text only.",
+                    name, gpa != null ? gpa : 0.0, attendance, conduct, bestSubject);
+            return aiClient.sendMessage(
+                    "You are a Ghana SHS class teacher writing term report remarks.", prompt);
+        } catch (Exception e) {
+            log.debug("AI teacher remarks unavailable, using template: {}", e.getMessage());
+            return buildTeacherRemarksTemplate(name, gpa, attendance);
+        }
+    }
+
+    private String generateHeadmasterRemarks(String name, Double gpa, double attendance) {
+        try {
+            String prompt = String.format(
+                    "Write a 2-sentence headmaster's remark for a Ghana SHS student named %s. " +
+                    "GPA: %.2f, Attendance: %.0f%%. Be formal, encouraging, and brief. Plain text only.",
+                    name, gpa != null ? gpa : 0.0, attendance);
+            return aiClient.sendMessage(
+                    "You are a Ghana SHS headmaster writing term report remarks.", prompt);
+        } catch (Exception e) {
+            log.debug("AI headmaster remarks unavailable, using template: {}", e.getMessage());
+            return buildHeadmasterRemarksTemplate(name, gpa);
+        }
+    }
+
+    private String buildTeacherRemarksTemplate(String name, Double gpa, double attendance) {
+        String first = name.split(" ")[0];
+        if (gpa != null && gpa >= 3.6)
+            return first + " has demonstrated outstanding academic performance this term. Keep up the excellent work and continue to be an inspiration to your peers.";
+        if (gpa != null && gpa >= 3.0)
+            return first + " has performed very well this term and shown commendable dedication. With continued effort, even greater achievements await.";
+        if (gpa != null && gpa >= 2.0)
+            return first + " has shown satisfactory progress this term. Consistent study habits and active class participation will help improve further.";
+        return first + " is encouraged to put in more effort and seek academic support where needed. With determination, significant improvement is achievable.";
+    }
+
+    private String buildHeadmasterRemarksTemplate(String name, Double gpa) {
+        String first = name.split(" ")[0];
+        if (gpa != null && gpa >= 3.0)
+            return "Well done, " + first + ". Your performance reflects hard work and commitment to excellence. The school is proud of your achievements.";
+        if (gpa != null && gpa >= 2.0)
+            return first + " has made reasonable progress. Continued focus and improvement in the next term is strongly encouraged.";
+        return first + " must work harder to meet the academic standards expected. The school remains committed to supporting your growth.";
     }
 
     // ================================================================
@@ -314,8 +430,8 @@ public class PdfGeneratorService {
     // PDF BUILDERS
     // ================================================================
 
-    private byte[] buildReportPdf(Student student, TermResult tr, List<Score> scores)
-            throws IOException {
+    private byte[] buildReportPdf(Student student, TermResult tr, List<Score> scores,
+                                   ReportEnrichment enrichment) throws IOException {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = new PdfWriter(baos);
@@ -323,9 +439,9 @@ public class PdfGeneratorService {
         Document doc = new Document(pdf, PageSize.A4);
         doc.setMargins(50, 50, 50, 50);
 
-        PdfFont bold   = fontBold;
-        PdfFont body   = fontRegular;
-        PdfFont italic = fontItalic;
+        PdfFont bold   = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont body   = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+        PdfFont italic = PdfFontFactory.createFont(StandardFonts.HELVETICA_OBLIQUE);
 
         School school  = student.getSchool();
         String termName = switch (tr.getTerm().getTermType()) {
@@ -600,20 +716,18 @@ public class PdfGeneratorService {
         Cell condBox = new Cell().setBorder(new SolidBorder(LIGHT_GRAY, 0.5f)).setPadding(8);
         condBox.add(new Paragraph("CONDUCT & ATTITUDE")
                 .setFont(bold).setFontSize(8).setFontColor(GES_GREEN).setMarginBottom(4));
-        String conduct = orDash(tr.getConductRating());
+        String conduct = enrichment.conductRating();
         Paragraph conductPara = new Paragraph("Conduct: ")
                 .setFont(body).setFontSize(8).setMarginBottom(2);
-        if (!"—".equals(conduct)) {
-            conductPara.add(new com.itextpdf.layout.element.Text(" " + conduct + " ")
-                    .setFont(bold).setFontSize(8)
-                    .setFontColor(WHITE)
-                    .setBackgroundColor(getConductColor(conduct)));
-        } else {
-            conductPara.add(new com.itextpdf.layout.element.Text(conduct).setFont(body));
-        }
+        conductPara.add(new com.itextpdf.layout.element.Text(" " + conduct.replace('_', ' ') + " ")
+                .setFont(bold).setFontSize(8)
+                .setFontColor(WHITE)
+                .setBackgroundColor(getConductColor(conduct)));
         condBox.add(conductPara);
-        condBox.add(new Paragraph("Interest: —").setFont(body).setFontSize(8).setMarginBottom(2));
-        condBox.add(new Paragraph("Attitude: —").setFont(body).setFontSize(8));
+        condBox.add(new Paragraph("Interest: " + enrichment.interest().replace('_', ' '))
+                .setFont(body).setFontSize(8).setMarginBottom(2));
+        condBox.add(new Paragraph("Attitude: " + enrichment.attitude().replace('_', ' '))
+                .setFont(body).setFontSize(8));
         attCondLayout.addCell(condBox);
 
         doc.add(attCondLayout);
@@ -629,7 +743,7 @@ public class PdfGeneratorService {
         Cell ctBlock = new Cell().setBorder(new SolidBorder(LIGHT_GRAY, 0.5f)).setPadding(8);
         ctBlock.add(new Paragraph("CLASS TEACHER'S REMARKS")
                 .setFont(bold).setFontSize(8).setFontColor(GES_GREEN).setMarginBottom(3));
-        ctBlock.add(new Paragraph(orDash(tr.getClassTeacherRemarks()))
+        ctBlock.add(new Paragraph(enrichment.teacherRemarks())
                 .setFont(italic).setFontSize(8).setMarginBottom(6));
         ctBlock.add(new Paragraph("Signature: _________________________   Date: ___________")
                 .setFont(body).setFontSize(7).setFontColor(DARK_GREY));
@@ -642,7 +756,7 @@ public class PdfGeneratorService {
         Cell hmBlock = new Cell().setBorder(new SolidBorder(LIGHT_GRAY, 0.5f)).setPadding(8);
         hmBlock.add(new Paragraph("HEADMASTER'S REMARKS")
                 .setFont(bold).setFontSize(8).setFontColor(GES_GREEN).setMarginBottom(3));
-        hmBlock.add(new Paragraph(orDash(tr.getHeadmasterRemarks()))
+        hmBlock.add(new Paragraph(enrichment.headmasterRemarks())
                 .setFont(italic).setFontSize(8).setMarginBottom(6));
         hmBlock.add(new Paragraph("Signature: _________________________   Date: ___________")
                 .setFont(body).setFontSize(7).setFontColor(DARK_GREY));
@@ -706,9 +820,9 @@ public class PdfGeneratorService {
         Document doc = new Document(pdf, PageSize.A4);
         doc.setMargins(45, 50, 45, 50);
 
-        PdfFont bold   = fontBold;
-        PdfFont body   = fontRegular;
-        PdfFont italic = fontItalic;
+        PdfFont bold   = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont body   = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+        PdfFont italic = PdfFontFactory.createFont(StandardFonts.HELVETICA_OBLIQUE);
 
         SchoolDto school = transcript.getSchoolInfo();
         String schoolName = school != null ? school.getName() : "Ghana SHS";
@@ -1249,7 +1363,7 @@ public class PdfGeneratorService {
         doc.close();
 
         // Post-process: add page numbers
-        return addPageNumbers(baos.toByteArray(), body, italic);
+        return addPageNumbers(baos.toByteArray());
     }
 
     // ================================================================
@@ -1372,18 +1486,20 @@ public class PdfGeneratorService {
         return idx >= 0 ? termLabel.substring(0, idx).trim() : termLabel;
     }
 
-    private byte[] addPageNumbers(byte[] pdfBytes, PdfFont body, PdfFont italic) throws IOException {
+    private byte[] addPageNumbers(byte[] pdfBytes) throws IOException {
         ByteArrayOutputStream result = new ByteArrayOutputStream();
         com.itextpdf.kernel.pdf.PdfReader reader = new com.itextpdf.kernel.pdf.PdfReader(
                 new java.io.ByteArrayInputStream(pdfBytes));
         PdfDocument pdfDoc = new PdfDocument(reader, new PdfWriter(result));
+        // Fresh fonts bound to this new PdfDocument — never share across documents
+        PdfFont pageNumFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         int totalPages = pdfDoc.getNumberOfPages();
         for (int i = 1; i <= totalPages; i++) {
             PdfPage page = pdfDoc.getPage(i);
             Rectangle pageSize = page.getPageSize();
             PdfCanvas canvas = new PdfCanvas(page);
             canvas.beginText()
-                    .setFontAndSize(body, 6.5f)
+                    .setFontAndSize(pageNumFont, 6.5f)
                     .moveText(pageSize.getWidth() / 2 - 20, 25)
                     .showText("Page " + i + " of " + totalPages)
                     .endText();

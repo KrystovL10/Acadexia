@@ -49,14 +49,16 @@ type SortKey = 'subject' | 'total' | 'grade';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function gpaColor(gpa: number): string {
+function gpaColor(gpa: number | null | undefined): string {
+  if (gpa == null) return 'text-gray-400';
   if (gpa >= 3.6) return 'text-emerald-600';
   if (gpa >= 3.0) return 'text-green-600';
   if (gpa >= 2.0) return 'text-amber-600';
   return 'text-red-600';
 }
 
-function gpaClassification(gpa: number): string {
+function gpaClassification(gpa: number | null | undefined): string {
+  if (gpa == null) return '—';
   if (gpa >= 3.6) return 'Distinction';
   if (gpa >= 3.0) return 'Very Good';
   if (gpa >= 2.5) return 'Good';
@@ -65,11 +67,17 @@ function gpaClassification(gpa: number): string {
   return 'Fail';
 }
 
-function gpaVariant(gpa: number): 'success' | 'info' | 'warning' | 'danger' | 'neutral' {
+function gpaVariant(gpa: number | null | undefined): 'success' | 'info' | 'warning' | 'danger' | 'neutral' {
+  if (gpa == null) return 'neutral';
   if (gpa >= 3.6) return 'success';
   if (gpa >= 2.5) return 'info';
   if (gpa >= 2.0) return 'warning';
   return 'danger';
+}
+
+/** Safely format a nullable number with toFixed */
+function fmt(n: number | null | undefined, decimals = 2): string {
+  return n != null ? n.toFixed(decimals) : '—';
 }
 
 function scoreBarColor(total: number): string {
@@ -192,7 +200,7 @@ function TermSidebarItem({
     >
       <span className="truncate">{term.termLabel}</span>
       <span className={cn('ml-2 shrink-0 text-xs font-bold', gpaColor(term.gpa))}>
-        {term.gpa.toFixed(2)}
+        {fmt(term.gpa)}
       </span>
     </button>
   );
@@ -442,7 +450,7 @@ export default function TermResults() {
                     <div className="text-center">
                       <p className="text-[10px] uppercase tracking-wide text-gray-400">GPA</p>
                       <p className={cn('text-4xl font-black', gpaColor(termDetail.gpa))}>
-                        {termDetail.gpa.toFixed(2)}
+                        {fmt(termDetail.gpa)}
                       </p>
                       <Badge variant={gpaVariant(termDetail.gpa)} className="mt-1 text-[10px]">
                         {gpaClassification(termDetail.gpa)}
@@ -602,7 +610,7 @@ export default function TermResults() {
                         <tr className="border-t border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600">
                           <td className="px-5 py-2.5" colSpan={3}>Average Score</td>
                           <td className="px-4 py-2.5 text-center font-bold text-gray-900">
-                            {avgScore.toFixed(1)}
+                            {fmt(avgScore, 1)}
                           </td>
                           <td colSpan={2} />
                         </tr>
@@ -679,10 +687,11 @@ export default function TermResults() {
                         <span className="text-xs font-semibold text-gray-500">GPA</span>
                         <div className="flex items-center gap-3">
                           <span className={cn('text-sm font-black', gpaColor(termDetail.gpa))}>
-                            {termDetail.gpa.toFixed(2)}
+                            {fmt(termDetail.gpa)}
                           </span>
-                          <span className="text-xs text-gray-400">was {prevDetail.gpa.toFixed(2)}</span>
+                          <span className="text-xs text-gray-400">was {fmt(prevDetail.gpa)}</span>
                           {(() => {
+                            if (termDetail.gpa == null || prevDetail.gpa == null) return null;
                             const d = termDetail.gpa - prevDetail.gpa;
                             if (d > 0) return (
                               <span className="inline-flex items-center gap-0.5 text-xs font-bold text-green-600">
@@ -799,12 +808,12 @@ export default function TermResults() {
                 {/* Attendance */}
                 <Card title="Attendance">
                   <div className="flex items-center gap-5">
-                    <AttendanceRing pct={termDetail.attendancePercentage} />
+                    <AttendanceRing pct={termDetail.attendancePercentage ?? 0} />
                     <div className="flex-1 space-y-1.5">
                       <p className="text-2xl font-black text-gray-900">
-                        {termDetail.attendancePercentage.toFixed(1)}%
+                        {fmt(termDetail.attendancePercentage, 1)}%
                       </p>
-                      {termDetail.attendancePercentage < 75 && (
+                      {(termDetail.attendancePercentage ?? 100) < 75 && (
                         <Badge variant="warning" className="text-[10px]">Below 75%</Badge>
                       )}
                       <div className="space-y-0.5 text-xs text-gray-500">
@@ -861,20 +870,24 @@ export default function TermResults() {
                     {/* Conduct rating */}
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-gray-500">Conduct:</span>
-                      <Badge
-                        variant={
-                          termDetail.conductRating === 'EXCELLENT'
-                            ? 'success'
-                            : termDetail.conductRating === 'VERY_GOOD' ||
-                              termDetail.conductRating === 'GOOD'
-                            ? 'info'
-                            : termDetail.conductRating === 'FAIR'
-                            ? 'warning'
-                            : 'danger'
-                        }
-                      >
-                        {termDetail.conductRating.replace(/_/g, ' ')}
-                      </Badge>
+                      {termDetail.conductRating ? (
+                        <Badge
+                          variant={
+                            termDetail.conductRating === 'EXCELLENT'
+                              ? 'success'
+                              : termDetail.conductRating === 'VERY_GOOD' ||
+                                termDetail.conductRating === 'GOOD'
+                              ? 'info'
+                              : termDetail.conductRating === 'FAIR'
+                              ? 'warning'
+                              : 'danger'
+                          }
+                        >
+                          {termDetail.conductRating.replace(/_/g, ' ')}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-gray-400">Not recorded</span>
+                      )}
                     </div>
 
                     {/* Class teacher remarks */}

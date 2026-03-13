@@ -83,8 +83,7 @@ export interface AttendanceSummaryDto {
   percentage: number;
 }
 
-export interface StudentDetailDto {
-  student: StudentDto;
+export interface StudentDetailDto extends StudentDto {
   currentTermScores: ScoreDto[];
   currentGpa: number | null;
   cgpa: number;
@@ -378,7 +377,9 @@ export interface ClassBehaviorReportDto {
 // ==================== REPORTS ====================
 
 export interface ReportReadinessDto {
-  isReady: boolean;
+  ready: boolean;
+  /** @deprecated backend sends `ready`, kept for backwards compat */
+  isReady?: boolean;
   allScoresSubmitted: boolean;
   missingScoreSubjects: string[];
   attendanceRecorded: boolean;
